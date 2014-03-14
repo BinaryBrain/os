@@ -1,0 +1,5 @@
+*
+!.gitignore
+!./arch/x86/syscalls/syscall_32.tbl
+!./arch/x86/syscalls/syscall_64.tbl
+!./kernel/kernel/get_unique_id.c
