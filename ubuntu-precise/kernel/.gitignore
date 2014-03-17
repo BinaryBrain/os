@@ -1,0 +1,5 @@
+*
+!.gitignore
+
+!get_unique_id.c
+!Makefile

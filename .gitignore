@@ -1,5 +1,11 @@
-*
-!.gitignore
-!./arch/x86/syscalls/syscall_32.tbl
-!./arch/x86/syscalls/syscall_64.tbl
-!./kernel/kernel/get_unique_id.c
+ubuntu-precise/*
+!ubuntu-precise/arch
+!ubuntu-precise/kernel
+!ubuntu-precise/include
+
+#!ubuntu-precise/include/linux/syscalls.h
+
+#!ubuntu-precise/arch/x86/syscalls/syscall_32.tbl
+#!ubuntu-precise/arch/x86/syscalls/syscall_64.tbl
+
+#!ubuntu-precise/kernel/kernel/get_unique_id.c

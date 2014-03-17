@@ -1,0 +1,5 @@
+*
+!.gitignore
+
+!syscall_32.tbl
+!syscall_64.tbl
