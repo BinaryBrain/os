@@ -3,7 +3,7 @@
  */
 
 #include "sched.h"
-
+#include <linux/kernel.h>
 /*
  * Timeslice and age threshold are represented in jiffies. Default timeslice
  * is 100ms. Both parameters can be tuned from /proc/sys/kernel.
@@ -12,48 +12,33 @@
 #define DUMMY_TIMESLICE		(100 * HZ / 1000)
 #define DUMMY_AGE_THRESHOLD	(3 * DUMMY_TIMESLICE)
 
-
-#define PRIORITIES_COUNT        (5)
-
-/* Macros to compare priorities */
-#define HIGHEST_PRIORITY	(11)
-#define HIGH_PRIORITY		(12)
-#define MID_PRIORITY		(13)
-#define LOW_PRIORITY		(14)
-#define	LOWEST_PRIORITY		(15)
-
-/* Macro to get the appropriate queue given a priority */
-#define get_queue_for_priority(priority, queues) (queues[(priority) \
-							 - HIGHEST_PRIORITY])
-
-#define for_each_priority(queue, queues) for (queue = queues; \
-					      queue < queues + PRIORITIES_COUNT; \
-					      ++queue)
+#define NR_PRIO_LEVELS (5)
+#define get_queue_for_priority(queues, priority) (&((queues)[(priority) - 11]))
 
 unsigned int sysctl_sched_dummy_timeslice = DUMMY_TIMESLICE;
 static inline unsigned int get_timeslice()
 {
-  return sysctl_sched_dummy_timeslice;
+	return sysctl_sched_dummy_timeslice;
 }
 
 unsigned int sysctl_sched_dummy_age_threshold = DUMMY_AGE_THRESHOLD;
 static inline unsigned int get_age_threshold()
 {
-  return sysctl_sched_dummy_age_threshold;
+	return sysctl_sched_dummy_age_threshold;
 }
 
 /*
  * Init
  */
 
-
 void init_dummy_rq(struct dummy_rq *dummy_rq, struct rq *rq)
 {
-  /* Init each queue */
-  struct list_head *queue = NULL;
-  for_each_priority (queue, dummy_rq->queues) {
-    INIT_LIST_HEAD(queue);
+  int i;
+  for (i = 0; i < NR_PRIO_LEVELS; ++i) {
+    INIT_LIST_HEAD((dummy_rq->queues) + i);
   }
+
+  printk(KERN_ALERT "QUEUES ARE INIT\n");
 }
 
 /*
@@ -62,19 +47,14 @@ void init_dummy_rq(struct dummy_rq *dummy_rq, struct rq *rq)
 
 static inline struct task_struct *dummy_task_of(struct sched_dummy_entity *dummy_se)
 {
-  return container_of(dummy_se, struct task_struct, dummy_se);
+	return container_of(dummy_se, struct task_struct, dummy_se);
 }
 
 static inline void _enqueue_task_dummy(struct rq *rq, struct task_struct *p)
 {
   struct sched_dummy_entity *dummy_se = &p->dummy_se;
-
-  struct list_head *queues = rq->dummy.queues;
-  int process_priority = getpriority(PRIO_PROCESS, p->pid);
-  struct list_head queue = get_queue_for_priority(process_priority,
-						  queues);
-
-  list_add_tail(&dummy_se->run_list, &queue);
+  struct list_head *queue = get_queue_for_priority(rq->dummy.queues, p->prio);
+  list_add_tail(&dummy_se->run_list, queue);
 }
 
 static inline void _dequeue_task_dummy(struct task_struct *p)
@@ -87,58 +67,40 @@ static inline void _dequeue_task_dummy(struct task_struct *p)
  * Scheduling class functions to implement
  */
 
-/**
- * Goal: appends a process to a run queue.
- * When? When a process become runnable after sleep.
- */
 static void enqueue_task_dummy(struct rq *rq, struct task_struct *p, int flags)
 {
+  printk(KERN_ALERT "enqueue called %d\n", p->prio);
   _enqueue_task_dummy(rq, p);
   inc_nr_running(rq);
 }
 
-/**
- * Goal: remove a process from a run queue.
- * When? When a process that was runnable need to/should sleep.
- */
 static void dequeue_task_dummy(struct rq *rq, struct task_struct *p, int flags)
 {
   _dequeue_task_dummy(p);
   dec_nr_running(rq);
 }
 
-/**
- * Called when some task wants to let others run.
- */
 static void yield_task_dummy(struct rq *rq)
 {
 }
 
-/**
- * Goal: prempt current task by a newly runnable task.
- * When? When a new runnable task is avaible.
- */
 static void check_preempt_curr_dummy(struct rq *rq, struct task_struct *p, int flags)
 {
+  if (rq->curr->prio > p->prio) {
+    resched_task(rq->curr);
+  }
 }
 
-/**
- * Goal: Selects the next task taht is supposed to run.
- * When? After put_prev_task.
- * Note: must not called enqueue and dequeue which should
- *  have been called before by the kernel.
- */
 static struct task_struct *pick_next_task_dummy(struct rq *rq)
 {
   struct dummy_rq *dummy_rq = &rq->dummy;
   struct sched_dummy_entity *next;
-  struct list_head queue = NULL;
+  int i = 0;
 
-  /* We lookup in our run queues in priority order. */
-  for_each_priority (queue, dummy_rq->queues) {
-    if(!list_empty(&queue)) {
-      next = list_first_entry(&dummy_rq->queue, struct sched_dummy_entity,
-			      run_list);
+  for (i = 11; i < NR_PRIO_LEVELS; ++i) {
+    struct list_head *queue = get_queue_for_priority(dummy_rq->queues, i);
+    if (!list_empty(queue)) {
+      next = list_first_entry(queue, struct sched_dummy_entity, run_list);
       return dummy_task_of(next);
     }
   }
@@ -146,24 +108,14 @@ static struct task_struct *pick_next_task_dummy(struct rq *rq)
   return NULL;
 }
 
-/**
- * Goal: do some statistics before selecting another task.
- */
 static void put_prev_task_dummy(struct rq *rq, struct task_struct *prev)
 {
 }
 
-/**
- * Called when scheduling policy of a task has changed.
- */
 static void set_curr_task_dummy(struct rq *rq)
 {
 }
 
-/**
- * Called at a given period. Warning: does not mean one must schedule each time.
- * Set flag TIF_NEED_RESCHED when need to reschedule.
- */
 static void task_tick_dummy(struct rq *rq, struct task_struct *curr, int queued)
 {
 }
@@ -182,7 +134,7 @@ static void prio_changed_dummy(struct rq *rq, struct task_struct *p, int oldprio
 
 static unsigned int get_rr_interval_dummy(struct rq *rq, struct task_struct *p)
 {
-  return get_timeslice();
+	return get_timeslice();
 }
 
 /*
@@ -190,22 +142,23 @@ static unsigned int get_rr_interval_dummy(struct rq *rq, struct task_struct *p)
  */
 
 const struct sched_class dummy_sched_class = {
-  .next = &idle_sched_class,
-  .enqueue_task = enqueue_task_dummy,
-  .dequeue_task = dequeue_task_dummy,
-  .yield_task = yield_task_dummy,
-
-  .check_preempt_curr = check_preempt_curr_dummy,
-
-  .pick_next_task = pick_next_task_dummy,
-  .put_prev_task = put_prev_task_dummy,
-
-  .set_curr_task = set_curr_task_dummy,
-  .task_tick = task_tick_dummy,
-
-  .switched_from = switched_from_dummy,
-  .switched_to = switched_to_dummy,
-  .prio_changed = prio_changed_dummy,
-
-  .get_rr_interval = get_rr_interval_dummy,
+  .next			= &idle_sched_class,
+  .enqueue_task		= enqueue_task_dummy,
+  .dequeue_task		= dequeue_task_dummy,
+  .yield_task		= yield_task_dummy,
+  
+  .check_preempt_curr 	= check_preempt_curr_dummy,
+  
+  .pick_next_task		= pick_next_task_dummy,
+  .put_prev_task		= put_prev_task_dummy,
+  
+  .set_curr_task		= set_curr_task_dummy,
+  .task_tick		= task_tick_dummy,
+  
+  .switched_from		= switched_from_dummy,
+  .switched_to		= switched_to_dummy,
+  .prio_changed		= prio_changed_dummy,
+  
+  .get_rr_interval	= get_rr_interval_dummy,
 };
+

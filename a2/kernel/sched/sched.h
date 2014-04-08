@@ -363,7 +363,7 @@ struct rt_rq {
 };
 
 struct dummy_rq {
-	struct list_head[5] queues;
+	struct list_head queues[5];
 };
 
 #ifdef CONFIG_SMP
