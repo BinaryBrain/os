@@ -90,13 +90,13 @@ static void yield_task_dummy(struct rq *rq)
 static void check_preempt_curr_dummy(struct rq *rq, struct task_struct *p, int flags)
 {
   if (rq->curr->prio > p->prio) {
-    //resched_task(rq->curr);
+    resched_task(rq->curr);
   }
 }
 
 static struct task_struct *pick_next_task_dummy(struct rq *rq)
 {
-  printk(KERN_ALERT "12 pick next task called\n");
+  
   struct dummy_rq *dummy_rq = &rq->dummy;
   struct sched_dummy_entity *next;
   int i = 0;
@@ -105,11 +105,12 @@ static struct task_struct *pick_next_task_dummy(struct rq *rq)
     struct list_head *queue = &(dummy_rq->queues[i]);
     if (!list_empty(queue)) {
       next = list_first_entry(queue, struct sched_dummy_entity, run_list);
+      printk(KERN_ALERT "a new task is picked.\n");
       return dummy_task_of(next);
     }
-    printk(KERN_ALERT "list with prio %d is empty\n",i);
+  
   }
-  printk(KERN_ALERT "pick next task returns NULL\n");
+  
   return NULL;
 }
 
