@@ -13,7 +13,7 @@
 #define DUMMY_AGE_THRESHOLD	(3 * DUMMY_TIMESLICE)
 
 #define NR_PRIO_LEVELS (5)
-#define DUMMY_MIN_PRIO (11)
+#define DUMMY_MIN_PRIO (131)
 
 unsigned int sysctl_sched_dummy_timeslice = DUMMY_TIMESLICE;
 static inline unsigned int get_timeslice()
