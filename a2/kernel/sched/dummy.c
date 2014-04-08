@@ -47,13 +47,16 @@ void init_dummy_rq(struct dummy_rq *dummy_rq, struct rq *rq)
 
 static inline struct task_struct *dummy_task_of(struct sched_dummy_entity *dummy_se)
 {
-	return container_of(dummy_se, struct task_struct, dummy_se);
+  return container_of(dummy_se, struct task_struct, dummy_se);
 }
 
 static inline void _enqueue_task_dummy(struct rq *rq, struct task_struct *p)
 {
   struct sched_dummy_entity *dummy_se = &p->dummy_se;
-  struct list_head *queue = get_queue_for_priority(rq->dummy.queues, p->prio);
+  
+  printk(KERN_ALERT "enqueue prio %d\n", p->prio);
+
+  struct list_head *queue = &(rq->dummy.queues[0]);
   list_add_tail(&dummy_se->run_list, queue);
 }
 
@@ -93,18 +96,20 @@ static void check_preempt_curr_dummy(struct rq *rq, struct task_struct *p, int f
 
 static struct task_struct *pick_next_task_dummy(struct rq *rq)
 {
+  printk(KERN_ALERT "12 pick next task called\n");
   struct dummy_rq *dummy_rq = &rq->dummy;
   struct sched_dummy_entity *next;
   int i = 0;
 
-  for (i = 11; i < NR_PRIO_LEVELS; ++i) {
-    struct list_head *queue = get_queue_for_priority(dummy_rq->queues, i);
+  for (i = 0; i < NR_PRIO_LEVELS; ++i) {
+    struct list_head *queue = &(dummy_rq->queues[i]);
     if (!list_empty(queue)) {
       next = list_first_entry(queue, struct sched_dummy_entity, run_list);
       return dummy_task_of(next);
     }
+    printk(KERN_ALERT "list with prio %d is empty\n",i);
   }
-
+  printk(KERN_ALERT "pick next task returns NULL\n");
   return NULL;
 }
 
