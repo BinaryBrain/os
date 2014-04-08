@@ -13,7 +13,7 @@
 #define DUMMY_AGE_THRESHOLD	(3 * DUMMY_TIMESLICE)
 
 #define NR_PRIO_LEVELS (5)
-#define get_queue_for_priority(queues, priority) (&((queues)[(priority) - 11]))
+#define DUMMY_MIN_PRIO (11)
 
 unsigned int sysctl_sched_dummy_timeslice = DUMMY_TIMESLICE;
 static inline unsigned int get_timeslice()
@@ -35,7 +35,7 @@ void init_dummy_rq(struct dummy_rq *dummy_rq, struct rq *rq)
 {
   int i;
   for (i = 0; i < NR_PRIO_LEVELS; ++i) {
-    INIT_LIST_HEAD((dummy_rq->queues) + i);
+    INIT_LIST_HEAD(&(dummy_rq->queues[i]));
   }
 
   printk(KERN_ALERT "QUEUES ARE INIT\n");
@@ -56,7 +56,7 @@ static inline void _enqueue_task_dummy(struct rq *rq, struct task_struct *p)
   
   printk(KERN_ALERT "enqueue prio %d\n", p->prio);
 
-  struct list_head *queue = &(rq->dummy.queues[0]);
+  struct list_head *queue = &(rq->dummy.queues[p->prio - DUMMY_MIN_PRIO]);
   list_add_tail(&dummy_se->run_list, queue);
 }
 
@@ -90,7 +90,7 @@ static void yield_task_dummy(struct rq *rq)
 static void check_preempt_curr_dummy(struct rq *rq, struct task_struct *p, int flags)
 {
   if (rq->curr->prio > p->prio) {
-    resched_task(rq->curr);
+    //resched_task(rq->curr);
   }
 }
 
