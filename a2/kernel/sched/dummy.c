@@ -149,8 +149,8 @@ static inline void perform_aging(struct rq *rq)
   if (first_prio_to_age < NR_PRIO_LEVELS) {
     int p;
     for (p = first_prio_to_age; p < NR_PRIO_LEVELS; ++p) {
-      struct list_head *dest = get_queue_for_priority(&(rq->dummy), p-1);
-      struct list_head *processes_to_age = get_queue_for_priority(&(rq->dummy), p);
+      struct list_head *dest = &(rq->dummy.queues[p - 1]);
+      struct list_head *processes_to_age = &(rq->dummy.queues[p]);
       /* Take processes from one queue to put in the higher
        * priority queue. */
       while (!list_empty(processes_to_age)) {
