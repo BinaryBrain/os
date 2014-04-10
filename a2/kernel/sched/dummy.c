@@ -90,6 +90,9 @@ static void dequeue_task_dummy(struct rq *rq, struct task_struct *p, int flags)
 
 static void yield_task_dummy(struct rq *rq)
 {
+  dequeue_task_dummy(rq, rq->curr, 0);
+  enqueue_task_dummy(rq, rq->curr, 0);
+  resched_task(rq->curr);
 }
 
 static void check_preempt_curr_dummy(struct rq *rq, struct task_struct *p, int flags)
@@ -148,13 +151,18 @@ static inline void perform_aging(struct rq *rq)
     for (p = first_prio_to_age; p < NR_PRIO_LEVELS; ++p) {
       struct list_head *dest = get_queue_for_priority(&(rq->dummy), p-1);
       struct list_head *processes_to_age = get_queue_for_priority(&(rq->dummy), p);
+      /* Take processes from one queue to put in the higher
+       * priority queue. */
       while (!list_empty(processes_to_age)) {
 	struct sched_dummy_entity* to_age;
 	to_age = list_first_entry(processes_to_age, 
 				  struct sched_dummy_entity, 
 				  run_list); 
 	dequeue_task_dummy(rq, dummy_task_of(to_age), 0);
+	
 	list_add_tail(&to_age->run_list, dest);
+	inc_nr_running(rq);
+
 	processes_to_age = get_queue_for_priority(&(rq->dummy), p);
       }
     }
@@ -209,13 +217,13 @@ const struct sched_class dummy_sched_class = {
   
   .check_preempt_curr 	= check_preempt_curr_dummy,
   
-  .pick_next_task		= pick_next_task_dummy,
-  .put_prev_task		= put_prev_task_dummy,
+  .pick_next_task	= pick_next_task_dummy,
+  .put_prev_task	= put_prev_task_dummy,
   
-  .set_curr_task		= set_curr_task_dummy,
+  .set_curr_task	= set_curr_task_dummy,
   .task_tick		= task_tick_dummy,
   
-  .switched_from		= switched_from_dummy,
+  .switched_from	= switched_from_dummy,
   .switched_to		= switched_to_dummy,
   .prio_changed		= prio_changed_dummy,
   
