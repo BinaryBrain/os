@@ -363,7 +363,8 @@ struct rt_rq {
 };
 
 struct dummy_rq {
-	struct list_head queues[5];
+  struct list_head queues[5];
+  unsigned int aging_tick_count;
 };
 
 #ifdef CONFIG_SMP
