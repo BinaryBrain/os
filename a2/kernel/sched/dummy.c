@@ -47,6 +47,8 @@ void init_dummy_rq(struct dummy_rq *dummy_rq, struct rq *rq)
 
 static inline struct list_head *get_queue_for_priority(struct dummy_rq *rq, int prio)
 {
+  /* The priority queue is implemented using an 
+   * array of linked lists which is based in rq->queues. */
   return &(rq->queues[prio - DUMMY_MIN_PRIO]);
 }
 
@@ -57,10 +59,8 @@ static inline struct task_struct *dummy_task_of(struct sched_dummy_entity *dummy
 
 static inline void _enqueue_task_dummy(struct rq *rq, struct task_struct *p)
 {
+  /* First of all, one get the appropriate queue and then add the process at the end of it. */
   struct sched_dummy_entity *dummy_se = &p->dummy_se;
-  
-  printk(KERN_ALERT "enqueue prio %d\n", p->prio);
-
   struct list_head *queue = get_queue_for_priority(&(rq->dummy), p->prio);
   list_add_tail(&dummy_se->run_list, queue);
 }
@@ -77,7 +77,6 @@ static inline void _dequeue_task_dummy(struct task_struct *p)
 
 static void enqueue_task_dummy(struct rq *rq, struct task_struct *p, int flags)
 {
-  printk(KERN_ALERT "enqueue called %d\n", p->prio);
   _enqueue_task_dummy(rq, p);
   inc_nr_running(rq);
 }
@@ -97,6 +96,12 @@ static void yield_task_dummy(struct rq *rq)
 
 static void check_preempt_curr_dummy(struct rq *rq, struct task_struct *p, int flags)
 {
+  /* Here two cases are handled:
+   *   - if a process of higher priority becomes runnable; and
+   *   - if a process of the same priority as the running process becomes runnable
+   *     in which case the running process is preempted only if it has already 
+   *     exceeded its round robin quantum.
+   */
   if (rq->curr->prio > p->prio) {
     resched_task(rq->curr);
   } else if (rq->curr->prio == p->prio) {
@@ -115,7 +120,8 @@ static struct task_struct *pick_next_task_dummy(struct rq *rq)
   struct dummy_rq *dummy_rq = &rq->dummy;
   struct sched_dummy_entity *next;
   int i = 0;
-
+  
+  /* The queues are browsed ordered by priority. It returns as soon as a nonempty queue is found. */
   for (i = 0; i < NR_PRIO_LEVELS; ++i) {
     struct list_head *queue = &(dummy_rq->queues[i]);
     if (!list_empty(queue)) {
