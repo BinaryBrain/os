@@ -163,7 +163,7 @@ static inline void perform_aging(struct rq *rq)
 	list_add_tail(&to_age->run_list, dest);
 	inc_nr_running(rq);
 
-	processes_to_age = get_queue_for_priority(&(rq->dummy), p);
+	processes_to_age = &(rq->dummy.queues[p]);
       }
     }
   }
