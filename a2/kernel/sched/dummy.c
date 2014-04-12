@@ -218,9 +218,11 @@ static void switched_to_dummy(struct rq *rq, struct task_struct *p)
 
 static void prio_changed_dummy(struct rq *rq, struct task_struct *p, int oldprio)
 {
+  /* If the new priority is less high (in linux sense) than the old one, 
+   * we resched. */
   if (oldprio > p->prio) {
-    dequeue_task_dummy(rq, curr, 0);
-    enqueue_task_dummy(rq, curr, 0);
+    dequeue_task_dummy(rq, rq->curr, 0);
+    enqueue_task_dummy(rq, rq->curr, 0);
     resched_task(rq->curr);	
   }
 }
