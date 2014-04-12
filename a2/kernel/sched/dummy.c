@@ -131,7 +131,7 @@ static struct task_struct *pick_next_task_dummy(struct rq *rq)
        * is running while a process of higher priority preempts that process and is handled by another
        * sched class. Suppose this happens frequently. To make sure that the same process does not
        * run a fraction of a round robin quantum and that the other processes in the queue gets their
-       * cycle we reset the round robin counter here only when a process has complete a round robin
+       * cycle we reset the round robin counter here only when a process has completed a round robin
        * tour.
       */
       if (rq->curr->dummy_se.rr_tick_count >= get_timeslice()) {
