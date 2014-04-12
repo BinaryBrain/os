@@ -12,8 +12,8 @@
 #define DUMMY_TIMESLICE		(100 * HZ / 1000)
 #define DUMMY_AGE_THRESHOLD	(3 * DUMMY_TIMESLICE)
 
-#define NR_PRIO_LEVELS (5)
-#define DUMMY_MIN_PRIO (131)
+#define NR_PRIO_LEVELS (5) ///< The number of different priority levels handled by this sched class.
+#define DUMMY_MIN_PRIO (131) ///< The first priority of the range of handled priorities.
 
 unsigned int sysctl_sched_dummy_timeslice = DUMMY_TIMESLICE;
 static inline unsigned int get_timeslice()
@@ -127,6 +127,13 @@ static struct task_struct *pick_next_task_dummy(struct rq *rq)
     if (!list_empty(queue)) {
       next = list_first_entry(queue, struct sched_dummy_entity, run_list);
       
+      /* Imagine the following case: a process of the highest priority handled by this sched class
+       * is running while a process of higher priority preempts that process and is handled by another
+       * sched class. Suppose this happens frequently. To make sure that the same process does not
+       * run a fraction of a round robin quantum and that the other processes in the queue gets their
+       * cycle we reset the round robin counter here only when a process has complete a round robin
+       * tour.
+      */
       if (rq->curr->dummy_se.rr_tick_count >= get_timeslice()) {
 	rq->curr->dummy_se.rr_tick_count = 0;
       }
@@ -147,6 +154,10 @@ static void set_curr_task_dummy(struct rq *rq)
 {
 }
 
+/**
+ * This routine is responsible for handling the aging and is called when the
+ * the tick count of the run queue exceeds the threshold.
+ */
 static inline void perform_aging(struct rq *rq)
 {
   struct task_struct *curr = rq->curr;
@@ -178,6 +189,7 @@ static inline void perform_aging(struct rq *rq)
 
 static void task_tick_dummy(struct rq *rq, struct task_struct *curr, int queued)
 {
+  /* Performs round robin resched if necessary. */
   rq->curr->dummy_se.rr_tick_count += 1;
   if (rq->curr->dummy_se.rr_tick_count >= get_timeslice()) {
     int curr_prio = curr->prio;
@@ -187,6 +199,7 @@ static void task_tick_dummy(struct rq *rq, struct task_struct *curr, int queued)
     resched_task(rq->curr);
   }
 
+  /* Performs aging if necessary. */
   rq->dummy.aging_tick_count += 1;
   if (rq->dummy.aging_tick_count >= get_age_threshold()) {
     perform_aging(rq);
