@@ -213,15 +213,21 @@ static void switched_from_dummy(struct rq *rq, struct task_struct *p)
 
 static void switched_to_dummy(struct rq *rq, struct task_struct *p)
 {
+  check_preempt_curr_dummy(rq, p, 0);
 }
 
 static void prio_changed_dummy(struct rq *rq, struct task_struct *p, int oldprio)
 {
+  if (oldprio > p->prio) {
+    dequeue_task_dummy(rq, curr, 0);
+    enqueue_task_dummy(rq, curr, 0);
+    resched_task(rq->curr);	
+  }
 }
 
 static unsigned int get_rr_interval_dummy(struct rq *rq, struct task_struct *p)
 {
-	return get_timeslice();
+  return get_timeslice();
 }
 
 /*
